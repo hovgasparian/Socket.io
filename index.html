@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/styles.css" />
+    <title>Socket.IO chat</title>
+  </head>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #fff;
+    }
+
+    #messages li {
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timestamp {
+      color: #999;
+    }
+
+    #form {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background-color: #f0f0f0;
+      margin-bottom: 10px;
+    }
+
+    #input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 4px;
+      border: 2px solid #ccc;
+      margin-right: 10px;
+    }
+
+    #sender {
+      padding: 8px;
+      border-radius: 4px;
+      border: 2px solid #ccc;
+      width: 25%;
+      margin-right: 10px;
+    }
+
+    #input:focus,
+    #sender:focus {
+      outline: none;
+      border-color: dodgerblue;
+    }
+
+    button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: dodgerblue;
+      color: #fff;
+      margin-right: 10px;
+      margin-left: 10px;
+      transition: 0.4s;
+    }
+
+    button:hover {
+      background-color: #4d94ff;
+      transform: scale(1.05);
+    }
+
+    #toggle-btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: tomato;
+      color: #fff;
+      transition: 0.4s;
+    }
+
+    #toggle-btn:hover {
+      background-color: #ff6666;
+      transform: scale(1.05);
+    }
+  </style>
+  <body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" placeholder="Type your message..." />
+      <input id="sender" autocomplete="off" placeholder="Your Name" />
+      <button id="sender-btn">Send</button>
+      <button id="toggle-btn">Disconnect</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+      const socket = io();
+      const form = document.getElementById("form");
+      const input = document.getElementById("input");
+      const senderInput = document.getElementById("sender");
+      const messages = document.getElementById("messages");
+      const toggleButton = document.getElementById("toggle-btn");
+
+      let messageList = [];
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        if (input.value && senderInput.value) {
+          const messageData = {
+            sender: senderInput.value,
+            message: input.value,
+          };
+          socket.emit("chat message", messageData);
+          input.value = "";
+        }
+      });
+
+      toggleButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (socket.connected) {
+          toggleButton.innerText = "Connect";
+          socket.disconnect();
+        } else {
+          toggleButton.innerText = "Disconnect";
+          socket.connect();
+        }
+      });
+
+      socket.on("chat message", (messageData) => {
+        messageList.push(messageData);
+        updateMessages();
+      });
+
+      socket.on("connect", () => {
+        socket.emit("request messages");
+        socket.emit("join", senderInput.value);
+      });
+
+      socket.on("stored messages", (storedMessages) => {
+        messageList = storedMessages;
+        updateMessages();
+      });
+
+      socket.on("user joined", (message) => {
+        addMessageToChat(message);
+      });
+
+      socket.on("user left", (message) => {
+        addMessageToChat(message);
+      });
+      function updateMessages() {
+        messages.innerHTML = "";
+        messageList.forEach((messageData) => {
+          const item = document.createElement("li");
+          item.innerHTML = `${messageData.sender}: ${messageData.message} <span class="timestamp">${messageData.timestamp}</span>`;
+
+          messages.appendChild(item);
+        });
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+
+      function addMessageToChat(message) {
+        const item = document.createElement("li");
+        item.textContent = message;
+        messages.appendChild(item);
+      }
+    </script>
+  </body>
+</html>
