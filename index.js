@@ -3,8 +3,7 @@ const app = express();
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server);
-
+const io = new Server(server);=
 require("dotenv").config();
 
 let messageHistory = [];
